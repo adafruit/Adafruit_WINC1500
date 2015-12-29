@@ -62,6 +62,11 @@ Adafruit_WINC1500Client::Adafruit_WINC1500Client(uint8_t sock, uint8_t parentsoc
 
 Adafruit_WINC1500Client::Adafruit_WINC1500Client(const Adafruit_WINC1500Client& other)
 {
+	setMembersAndWiFiCache(other);
+}
+
+void WiFiClient::setMembersAndWiFiCache(const WiFiClient& other)
+{
 	_socket = other._socket;
 	_flag = other._flag;
 	_head = other._head;
@@ -284,4 +289,9 @@ uint8_t Adafruit_WINC1500Client::status()
 Adafruit_WINC1500Client::operator bool()
 {
 	return _socket != -1;
+}
+
+WiFiClient& WiFiClient::operator =(const WiFiClient& other)
+{
+	setMembersAndWiFiCache(other);
 }
