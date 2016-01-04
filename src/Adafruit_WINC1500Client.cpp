@@ -294,4 +294,6 @@ Adafruit_WINC1500Client::operator bool()
 WiFiClient& WiFiClient::operator =(const WiFiClient& other)
 {
 	setMembersAndWiFiCache(other);
+
+	return *this;
 }
