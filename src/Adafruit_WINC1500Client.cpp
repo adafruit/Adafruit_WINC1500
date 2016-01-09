@@ -65,7 +65,7 @@ Adafruit_WINC1500Client::Adafruit_WINC1500Client(const Adafruit_WINC1500Client& 
 	copyFrom(other);
 }
 
-void WiFiClient::copyFrom(const WiFiClient& other)
+void Adafruit_WINC1500Client::copyFrom(const Adafruit_WINC1500Client& other)
 {
 	_socket = other._socket;
 	_flag = other._flag;
@@ -298,7 +298,7 @@ Adafruit_WINC1500Client::operator bool()
 	return _socket != -1;
 }
 
-WiFiClient& WiFiClient::operator =(const WiFiClient& other)
+Adafruit_WINC1500Client& Adafruit_WINC1500Client::operator =(const Adafruit_WINC1500Client& other)
 {
 	copyFrom(other);
 

@@ -48,7 +48,7 @@ public:
 	virtual void stop();
 	virtual uint8_t connected();
 	virtual operator bool();
-	virtual WiFiClient& operator =(const WiFiClient& other);
+	virtual Adafruit_WINC1500Client& operator =(const Adafruit_WINC1500Client& other);
 
 	using Print::write;
 
