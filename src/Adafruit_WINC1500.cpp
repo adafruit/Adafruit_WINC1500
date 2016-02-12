@@ -474,6 +474,13 @@ void Adafruit_WINC1500::disconnect()
 uint8_t *Adafruit_WINC1500::macAddress(uint8_t *mac)
 {
 	m2m_wifi_get_mac_address(mac);
+	byte tmpMac[6], i;
+	
+	m2m_wifi_get_mac_address(tmpMac);
+	
+	for(i = 0; i < 6; i++)
+		mac[i] = tmpMac[5-i];
+		
 	return mac;
 }
 
