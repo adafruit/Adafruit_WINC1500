@@ -1,7 +1,6 @@
 /*
   WiFi Web Server LED Blink
 
-<<<<<<< HEAD
  A simple web server that lets you blink an LED via the web.
  This sketch will create a new access point (with no password).
  It will then launch a new server and print out the IP address
