@@ -341,12 +341,12 @@ uint8_t Adafruit_WINC1500::beginAP(char *ssid, uint8_t channel)
 	return startAP(ssid, M2M_WIFI_SEC_OPEN, NULL, channel);
 }
 
-uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key)
+uint8_t Adafruit_WINC1500::beginAP(const char *ssid, uint8_t key_idx, const char* key)
 {
 	return beginAP(ssid, key_idx, key, 1);
 }
 
-uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key, uint8_t channel)
+uint8_t Adafruit_WINC1500::beginAP(const char *ssid, uint8_t key_idx, const char* key, uint8_t channel)
 {
 	tstrM2mWifiWepParams wep_params;
 
@@ -362,7 +362,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key, u
 	return startAP(ssid, M2M_WIFI_SEC_WEP, &wep_params, channel);
 }
 
-uint8_t WiFiClass::startAP(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo, uint8_t channel)
+uint8_t Adafruit_WINC1500::startAP(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo, uint8_t channel)
 {
 	tstrM2MAPConfig strM2MAPConfig;
 
