@@ -688,6 +688,9 @@ uint8_t Adafruit_WINC1500::status()
 	if (!_init) {
 		init();
 	}
+
+	m2m_wifi_handle_events(NULL);
+
 	return _status;
 }
 
