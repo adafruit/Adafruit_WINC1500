@@ -50,6 +50,8 @@ public:
 	// used for listening (i.e. only a direct send to the device IP will receive
 	// data).
 	uint8_t begin(uint16_t port, uint32_t multicastAddr);
+  virtual uint8_t begin(uint16_t);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
+  virtual uint8_t beginMulti(IPAddress, uint16_t);  // initialize, start listening on specified multicast IP address and port. Returns 1 if successful, 0 if there are no sockets available to use
   virtual void stop();  // Finish with the UDP socket
 
   // Sending UDP packets
