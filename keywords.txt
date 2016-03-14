@@ -39,7 +39,8 @@ getResult	KEYWORD2
 getSocket	KEYWORD2
 Adafruit_WINC1500Client KEYWORD2
 Adafruit_WINC1500Server	KEYWORD2
-Adafruti_WINC1500SSLClient	KEYWORD2
+Adafruit_WINC1500SSLClient	KEYWORD2
+Adafruit_WINC1500MDNS KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
