@@ -27,14 +27,18 @@
 // - DNS request and response: http://www.ietf.org/rfc/rfc1035.txt
 // - Multicast DNS: http://www.ietf.org/rfc/rfc6762.txt
 
-#define READ_BUFFER_SIZE 20
 #define HEADER_SIZE 12
-#define QDCOUNT_OFFSET 4
-#define A_RECORD_SIZE 14
-#define NSEC_RECORD_SIZE 20
 #define TTL_OFFSET 4
 #define IP_OFFSET 10
 
+const uint8_t expectedRequestHeader[HEADER_SIZE] PROGMEM = {
+  0x00, 0x00,
+  0x00, 0x00,
+  0x00, 0x01,
+  0x00, 0x00,
+  0x00, 0x00,
+  0x00, 0x00
+};
 
 MDNSResponder::MDNSResponder(Adafruit_WINC1500* wifi)
   : _expected(NULL)
@@ -46,16 +50,45 @@ MDNSResponder::MDNSResponder(Adafruit_WINC1500* wifi)
   , _wifi(wifi)
 { }
 
-MDNSResponder::~MDNSResponder() {
-  if (_expected != NULL) {
-    free(_expected);
-  }
-  if (_response != NULL) {
-    free(_response);
-  }
+const uint8_t responseHeader[] = {
+  0x00, 0x00,   // ID = 0
+  0x84, 0x00,   // Flags = response + authoritative answer
+  0x00, 0x00,   // Question count = 0
+  0x00, 0x01,   // Answer count = 1
+  0x00, 0x00,   // Name server records = 0
+  0x00, 0x01    // Additional records = 1
+};
+
+// Generate positive response for IPV4 address
+const uint8_t aRecord[] = {
+  0x00, 0x01,                // Type = 1, A record/IPV4 address
+  0x80, 0x01,                // Class = Internet, with cache flush bit
+  0x00, 0x00, 0x00, 0x00,    // TTL in seconds, to be filled in later
+  0x00, 0x04,                // Length of record
+  0x00, 0x00, 0x00, 0x00     // IP address, to be filled in later
+};
+
+// Generate negative response for IPV6 address (CC3000 doesn't support IPV6)
+const uint8_t nsecRecord[] = { 
+  0xC0, 0x0C,                // Name offset
+  0x00, 0x2F,                // Type = 47, NSEC (overloaded by MDNS)
+  0x80, 0x01,                // Class = Internet, with cache flush bit
+  0x00, 0x00, 0x00, 0x00,    // TTL in seconds, to be filled in later
+  0x00, 0x08,                // Length of record
+  0xC0, 0x0C,                // Next domain = offset to FQDN
+  0x00,                      // Block number = 0
+  0x04,                      // Length of bitmap = 4 bytes
+  0x40, 0x00, 0x00, 0x00     // Bitmap value = Only first bit (A record/IPV4) is set
+};
+
+const uint8_t domain[] = { 'l', 'o', 'c', 'a', 'l' };
+
+MDNSResponder::MDNSResponder() :
+  expectedRequestLength(0)
+{
 }
 
-bool MDNSResponder::begin(const char* domain, uint32_t ttlSeconds)
+MDNSResponder::~MDNSResponder()
 {
   // Construct DNS request/response fully qualified domain name of form:
   // <domain length>, <domain characters>, 5, "local"
@@ -86,33 +119,6 @@ bool MDNSResponder::begin(const char* domain, uint32_t ttlSeconds)
   uint8_t local[] = { 0x05, 0x6C, 0x6F, 0x63, 0x61, 0x6C, 0x00, 0x00, 0x01, 0x00, 0x01 };
   memcpy(&_expected[1+n], local, 11);
 
-  // Construct DNS query response
-  // TODO: Move these to flash or just construct in code.
-  uint8_t respHeader[] = { 0x00, 0x00,   // ID = 0
-                           0x84, 0x00,   // Flags = response + authoritative answer
-                           0x00, 0x00,   // Question count = 0
-                           0x00, 0x01,   // Answer count = 1
-                           0x00, 0x00,   // Name server records = 0
-                           0x00, 0x01    // Additional records = 1
-  };
-  // Generate positive response for IPV4 address
-  uint8_t aRecord[] = { 0x00, 0x01,                // Type = 1, A record/IPV4 address
-                        0x80, 0x01,                // Class = Internet, with cache flush bit
-                        0x00, 0x00, 0x00, 0x00,    // TTL in seconds, to be filled in later
-                        0x00, 0x04,                // Length of record
-                        0x00, 0x00, 0x00, 0x00     // IP address, to be filled in later
-  };
-  // Generate negative response for IPV6 address (CC3000 doesn't support IPV6)
-  uint8_t nsecRecord[] = {  0xC0, 0x0C,                // Name offset
-                            0x00, 0x2F,                // Type = 47, NSEC (overloaded by MDNS)
-                            0x80, 0x01,                // Class = Internet, with cache flush bit
-                            0x00, 0x00, 0x00, 0x00,    // TTL in seconds, to be filled in later
-                            0x00, 0x08,                // Length of record
-                            0xC0, 0x0C,                // Next domain = offset to FQDN
-                            0x00,                      // Block number = 0
-                            0x04,                      // Length of bitmap = 4 bytes
-                            0x40, 0x00, 0x00, 0x00     // Bitmap value = Only first bit (A record/IPV4) is set
-  };
   // Allocate memory for response.
   int queryFQDNLen = _expectedLen - 4;
   _responseLen = HEADER_SIZE + queryFQDNLen + A_RECORD_SIZE + NSEC_RECORD_SIZE;
@@ -149,49 +155,100 @@ bool MDNSResponder::begin(const char* domain, uint32_t ttlSeconds)
   return true;
 }
 
-void MDNSResponder::update() {
-  // Check if there's data to read from the UDP socket.
-  int available = _mdnsSocket.parsePacket();
-  // Stop processing if no data is available.
-  if (available <= 0) {
-    return;
-  }
-  // Otherwise there is data to read so grab it all and parse the data.
-  uint8_t buffer[READ_BUFFER_SIZE];
-  int n = _mdnsSocket.read((unsigned char*)&buffer, sizeof(buffer));
-  if (n < 1) {
-    // Error getting data.
-    return;
-  }
-  // Look for domain name in request and respond with canned response if found.
-  for (int i = 0; i < n; ++i) {
-    uint8_t ch = tolower(buffer[i]);
-    // Check character matches expected.
-    if (ch == _expected[_index])
-    {
-      _index++;
-      // Check if domain name was found and send a response.
-      if (_index >= _expectedLen) {
-        // Send response to multicast address.
-        _broadcastResponse();
-        _index = 0;
-      }
-    }
-    else if (ch == _expected[0]) {
-      // Found a character that doesn't match, but does match the start of the domain.
-      _index = 1;
-    }
-    else {
-      // Found a character that doesn't match the expected character or start of domain.
-      _index = 0;
-    }
+void MDNSResponder::poll()
+{
+  if (parseRequest()) {
+    replyToRequest();
   }
 }
 
-void MDNSResponder::_broadcastResponse() {
-  // Send a MDNS name query response for this device.
-  // Use the MDNS multicast address 224.0.0.251 port 5353.
-  _mdnsSocket.beginPacket(IPAddress(224, 0, 0, 251), 5353);
-  _mdnsSocket.write(_response, _responseLen);
-  _mdnsSocket.endPacket();
+bool MDNSResponder::parseRequest()
+{
+  if (udpSocket.parsePacket()) {
+    // check if parsed packet matches expected request length
+    if (udpSocket.available() != expectedRequestLength) {
+      // it does not, read the full packet in and drop data
+      while(udpSocket.available()) {
+        udpSocket.read();
+      }
+
+      return false;
+    }
+
+    // read packet
+    uint8_t request[expectedRequestLength];
+    udpSocket.read(request, expectedRequestLength);
+
+    // parse request
+    uint8_t requestNameLength   = request[HEADER_SIZE];
+    uint8_t* requestName        = &request[HEADER_SIZE + 1];
+    uint8_t requestDomainLength = request[HEADER_SIZE + 1 + requestNameLength];
+    uint8_t* requestDomain      = &request[HEADER_SIZE + 1 + requestNameLength + 1];
+    uint16_t requestQtype;
+    uint16_t requestQclass;
+
+    memcpy(&requestQtype, &request[expectedRequestLength - 4], sizeof(requestQtype));
+    memcpy(&requestQclass, &request[expectedRequestLength - 2], sizeof(requestQclass));
+
+    requestQtype = _ntohs(requestQtype);
+    requestQclass = _ntohs(requestQclass);
+
+    // compare request
+    if (memcmp_P(request, expectedRequestHeader, HEADER_SIZE) == 0 &&            // request header match
+        requestNameLength == name.length() &&                                    // name length match
+        strncasecmp(name.c_str(), (char*)requestName, requestNameLength) == 0 && // name match
+        requestDomainLength == sizeof(domain) &&                                 // domain length match
+        memcmp_P(requestDomain, domain, requestDomainLength) == 0 &&             // suffix match
+        requestQtype == 0x0001 &&                                                // request QType match
+        (requestQclass == 0x0001 || requestQclass == 0x8001) ) {                 // request QClass match
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void MDNSResponder::replyToRequest()
+{
+  int nameLength = name.length();
+  int domainLength = sizeof(domain);
+  uint32_t ipAddress = WiFi.localIP();
+  uint32_t ttl = _htonl(ttlSeconds);
+
+  int responseSize = sizeof(responseHeader) + 1 + nameLength + 1 + domainLength + 1 + sizeof(aRecord) + sizeof(nsecRecord);
+  uint8_t response[responseSize];
+  uint8_t* r = response;
+
+  // copy header
+  memcpy_P(r, responseHeader, sizeof(responseHeader));
+  r += sizeof(responseHeader);
+  
+  // copy name
+  *r = nameLength;
+  memcpy(r + 1, name.c_str(), nameLength);
+  r += (1 + nameLength);
+
+  // copy domain
+  *r = domainLength;
+  memcpy_P(r + 1, domain, domainLength);
+  r += (1 + domainLength);
+
+  // terminator
+  *r = 0x00;
+  r++;
+
+  // copy A record
+  memcpy_P(r, aRecord, sizeof(aRecord));
+  memcpy(r + TTL_OFFSET, &ttl, sizeof(ttl));            // replace TTL value
+  memcpy(r + IP_OFFSET, &ipAddress, sizeof(ipAddress)); // replace IP address value
+  r += sizeof(aRecord);
+
+  // copy NSEC record
+  memcpy_P(r, nsecRecord, sizeof(nsecRecord));
+  r += sizeof(nsecRecord);
+
+  udpSocket.beginPacket(IPAddress(224, 0, 0, 251), 5353);
+  udpSocket.write(response, responseSize);
+  udpSocket.endPacket();
 }
