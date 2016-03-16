@@ -103,7 +103,7 @@ uint8_t Adafruit_WINC1500UDP::begin(uint16_t port, uint32_t multicastAddr)
 	return 1;
 }
 
-uint8_t WiFiUDP::beginMulti(IPAddress ip, uint16_t port)
+uint8_t Adafruit_WINC1500UDP::beginMulti(IPAddress ip, uint16_t port)
 {
 	uint32_t multiIp = ip;
 

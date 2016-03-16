@@ -64,7 +64,7 @@ int keyIndex = 0;                 // your network key Index number (needed only 
 int status = WL_IDLE_STATUS;
 
 // Create a MDNS responder to listen and respond to MDNS name requests.
-MDNSResponder mdns(&WiFi);  // Need to pass in a reference to the WiFi class above.
+MDNSResponder mdnsResponder(&WiFi);  // Need to pass in a reference to the WiFi class above.
 
 Adafruit_WINC1500Server server(80);
 
@@ -105,7 +105,7 @@ void setup() {
   // Setup the MDNS responder to listen to the configured name.
   // NOTE: You _must_ call this _after_ connecting to the WiFi network and
   // being assigned an IP address.
-  if (!mdns.begin(MDNS_NAME)) {
+  if (!mdnsResponder.begin(MDNS_NAME)) {
     Serial.println("Failed to start MDNS responder!");
     while(1);
   }
@@ -119,7 +119,7 @@ void setup() {
 void loop() {
   // Call the update() function on the MDNS responder every loop iteration to
   // make sure it can detect and respond to name requests.
-  mdns.poll();
+  mdnsResponder.poll();
 
   // listen for incoming clients
   Adafruit_WINC1500Client client = server.available();

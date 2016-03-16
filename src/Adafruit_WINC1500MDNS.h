@@ -28,7 +28,7 @@
 
 class MDNSResponder {
 public:
-  MDNSResponder(Adafruit_WINC1500* wifi);
+  MDNSResponder();
   ~MDNSResponder();
   bool begin(const char* _name, uint32_t _ttlSeconds = 3600);
   void poll();
@@ -44,9 +44,7 @@ private:
   int expectedRequestLength;
 
   // UDP socket for receiving/sending MDNS data.
-  Adafruit_WINC1500UDP _mdnsSocket;
-  // Reference to WINC1500 wifi object, used to get IP address.
-  Adafruit_WINC1500* _wifi;
+  Adafruit_WINC1500UDP udpSocket;
 };
 
 #endif

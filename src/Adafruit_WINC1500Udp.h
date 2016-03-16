@@ -37,20 +37,12 @@ private:
 
 public:
   Adafruit_WINC1500UDP();  // Constructor
-  // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
-  virtual uint8_t begin(uint16_t port) {
-		// Call the begin function with no multicast address set.  Because the begin(uint16_t)
-		// function is pure virtual on the parent class this function must be
-		// implemented explicitly instead of adding an optional parameter for then
-		// multicast address.
-		return begin(port, 0);
-	}
 	// Initialize listening on the specified UDP port and in the specified multicast
 	// address group.  If multicastAddr is 0 then no multicast address group is
 	// used for listening (i.e. only a direct send to the device IP will receive
-	// data).
-	uint8_t begin(uint16_t port, uint32_t multicastAddr);
-  virtual uint8_t begin(uint16_t);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
+	// data)
+  virtual uint8_t begin(uint16_t port, uint32_t multicastAddr);
+  virtual uint8_t begin(uint16_t port) { begin(port, 0); }	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
   virtual uint8_t beginMulti(IPAddress, uint16_t);  // initialize, start listening on specified multicast IP address and port. Returns 1 if successful, 0 if there are no sockets available to use
   virtual void stop();  // Finish with the UDP socket
 
