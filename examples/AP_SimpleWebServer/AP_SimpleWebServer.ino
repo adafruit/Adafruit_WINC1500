@@ -45,10 +45,6 @@ Adafruit_WINC1500 WiFi(WINC_CS, WINC_IRQ, WINC_RST);
 //Adafruit_WINC1500 WiFi;
 
 // **** WARNING ****
-// If running this example on an Uno or compatible you MUST change the LED_PIN
-// value below from 13 to something else that doesn't conflict with the SPI
-// pins.  Try pin 9 for example.
-// **** WARNING ****
 #define LED_PIN  13  // This example assumes you have a LED connected to pin 13
                      // (with a resistor to limit current!).  Connect LED anode
                      // (longer leg) to pin 9, then LED cathode (shorter pin)
