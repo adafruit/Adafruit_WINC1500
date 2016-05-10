@@ -172,6 +172,11 @@ size_t Adafruit_WINC1500Client::write(uint8_t b)
 	return write(&b, 1);
 }
 
+size_t Adafruit_WINC1500Client::writeAsync(uint8_t b)
+{
+	return write(&b, 1);
+}
+
 size_t Adafruit_WINC1500Client::write(const uint8_t *buf, size_t size)
 {
 	sint16 err;
@@ -197,6 +202,40 @@ size_t Adafruit_WINC1500Client::write(const uint8_t *buf, size_t size)
 		}
 		m2m_wifi_handle_events(NULL);
 	}
+	
+	// Network led OFF (rev A then rev B).
+	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);
+	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1);
+			
+	return size;
+}
+
+size_t Adafruit_WINC1500Client::writeAsync(const uint8_t *buf, size_t size)
+{
+	sint16 err;
+
+	if (_socket < 0 || size == 0) {
+		setWriteError();
+		return 0;
+	}
+
+	// Network led ON (rev A then rev B).
+	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 0);
+	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 0);
+
+	m2m_wifi_handle_events(NULL);
+
+	if ((err = send(_socket, (void *)buf, size, 0)) < 0) {
+		// Exit on fatal error
+		if (err != SOCK_ERR_BUFFER_FULL) {
+			setWriteError();
+			m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);
+			m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1);
+			return 0;
+		}
+	}
+
+	m2m_wifi_handle_events(NULL);
 	
 	// Network led OFF (rev A then rev B).
 	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);

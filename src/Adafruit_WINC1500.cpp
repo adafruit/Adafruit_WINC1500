@@ -275,9 +275,39 @@ uint8_t Adafruit_WINC1500::begin()
 	return _status;
 }
 
+uint8_t Adafruit_WINC1500::beginAsync()
+{
+	if (!_init) {
+		init();
+	}
+	
+	// Connect to router:
+	if (_dhcp) {
+		_localip = 0;
+		_submask = 0;
+		_gateway = 0;
+	}
+	if (m2m_wifi_default_connect() < 0) {
+		_status = WL_CONNECT_FAILED;
+		return _status;
+	}
+	_status = WL_IDLE_STATUS;
+	_mode = WL_STA_MODE;
+
+	m2m_wifi_handle_events(NULL);
+
+	memset(_ssid, 0, M2M_MAX_SSID_LEN);
+	return _status;
+}
+
 uint8_t Adafruit_WINC1500::begin(const char *ssid)
 {
 	return startConnect(ssid, M2M_WIFI_SEC_OPEN, (void *)0);
+}
+
+uint8_t Adafruit_WINC1500::beginAsync(const char *ssid)
+{
+	return startConnectAsync(ssid, M2M_WIFI_SEC_OPEN, (void *)0);
 }
 
 uint8_t Adafruit_WINC1500::begin(const char *ssid, uint8_t key_idx, const char* key)
@@ -291,9 +321,25 @@ uint8_t Adafruit_WINC1500::begin(const char *ssid, uint8_t key_idx, const char* 
 	return startConnect(ssid, M2M_WIFI_SEC_WEP, &wep_params);
 }
 
+uint8_t Adafruit_WINC1500::beginAsync(const char *ssid, uint8_t key_idx, const char* key)
+{
+	tstrM2mWifiWepParams wep_params;
+
+	memset(&wep_params, 0, sizeof(tstrM2mWifiWepParams));
+	wep_params.u8KeyIndx = key_idx;
+	wep_params.u8KeySz = strlen(key);
+	strcpy((char *)&wep_params.au8WepKey[0], key);
+	return startConnectAsync(ssid, M2M_WIFI_SEC_WEP, &wep_params);
+}
+
 uint8_t Adafruit_WINC1500::begin(const char *ssid, const char *key)
 {
 	return startConnect(ssid, M2M_WIFI_SEC_WPA_PSK, key);
+}
+
+uint8_t Adafruit_WINC1500::beginAsync(const char *ssid, const char *key)
+{
+	return startConnectAsync(ssid, M2M_WIFI_SEC_WPA_PSK, key);
 }
 
 uint8_t Adafruit_WINC1500::startConnect(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo)
@@ -325,6 +371,32 @@ uint8_t Adafruit_WINC1500::startConnect(const char *ssid, uint8_t u8SecType, con
 	if (!(_status & WL_CONNECTED)) {
 		_mode = WL_RESET_MODE;
 	}
+
+	memset(_ssid, 0, M2M_MAX_SSID_LEN);
+	memcpy(_ssid, ssid, strlen(ssid));
+	return _status;
+}
+
+uint8_t Adafruit_WINC1500::startConnectAsync(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo)
+{
+	if (!_init) {
+		init();
+	}
+	
+	// Connect to router:
+	if (_dhcp) {
+		_localip = 0;
+		_submask = 0;
+		_gateway = 0;
+	}
+	if (m2m_wifi_connect(ssid, strlen(ssid), u8SecType, pvAuthInfo, M2M_WIFI_CH_ALL) < 0) {
+		_status = WL_CONNECT_FAILED;
+		return _status;
+	}
+	_status = WL_IDLE_STATUS;
+	_mode = WL_STA_MODE;
+
+	m2m_wifi_handle_events(NULL);
 
 	memset(_ssid, 0, M2M_MAX_SSID_LEN);
 	memcpy(_ssid, ssid, strlen(ssid));
