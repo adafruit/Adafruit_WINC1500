@@ -51,7 +51,11 @@
 #define NMI_INTR_ENABLE				(NMI_INTR_REG_BASE)
 #define GET_UINT32(X,Y)				(X[0+Y] + ((uint32)X[1+Y]<<8) + ((uint32)X[2+Y]<<16) +((uint32)X[3+Y]<<24))
 
+#ifdef ARDUINO
+#define TIMEOUT						(2000)
+#else
 #define TIMEOUT						(0xfffffffful)
+#endif 
 #define M2M_DISABLE_PS				(0xd0ul)
 
 static uint32 clk_status_reg_adr = 0xf; /* Assume initially it is B0 chip */
@@ -674,9 +678,21 @@ sint8 nmi_get_otp_mac_address(uint8 *pu8MacAddr,  uint8 * pu8IsValid)
 	ret = nm_read_reg_with_ret(rNMI_GP_REG_2, &u32RegValue);
 	if(ret != M2M_SUCCESS) goto _EXIT_ERR;
 
+#ifdef ARDUINO
+	if (u32RegValue) {
+		ret = nm_read_block(u32RegValue|0x30000,(uint8*)&strgp,sizeof(tstrGpRegs));
+		if(ret != M2M_SUCCESS) goto _EXIT_ERR;
+		u32RegValue = strgp.u32Mac_efuse_mib;
+	} else {
+		// firmware version 19.3.0
+		ret = nm_read_reg_with_ret(rNMI_GP_REG_0, &u32RegValue);
+		if(ret != M2M_SUCCESS) goto _EXIT_ERR;
+	}
+#else
 	ret = nm_read_block(u32RegValue|0x30000,(uint8*)&strgp,sizeof(tstrGpRegs));
 	if(ret != M2M_SUCCESS) goto _EXIT_ERR;
 	u32RegValue = strgp.u32Mac_efuse_mib;
+#endif
 
 	if(!EFUSED_MAC(u32RegValue)) {
 		M2M_DBG("Default MAC\n");
@@ -706,9 +722,21 @@ sint8 nmi_get_mac_address(uint8 *pu8MacAddr)
 	ret = nm_read_reg_with_ret(rNMI_GP_REG_2, &u32RegValue);
 	if(ret != M2M_SUCCESS) goto _EXIT_ERR;
 
+#ifdef ARDUINO
+	if (u32RegValue) {
+		ret = nm_read_block(u32RegValue|0x30000,(uint8*)&strgp,sizeof(tstrGpRegs));
+		if(ret != M2M_SUCCESS) goto _EXIT_ERR;
+		u32RegValue = strgp.u32Mac_efuse_mib;
+	} else {
+		// firmware version 19.3.0
+		ret = nm_read_reg_with_ret(rNMI_GP_REG_0, &u32RegValue);
+		if(ret != M2M_SUCCESS) goto _EXIT_ERR;
+	}
+#else
 	ret = nm_read_block(u32RegValue|0x30000,(uint8*)&strgp,sizeof(tstrGpRegs));
 	if(ret != M2M_SUCCESS) goto _EXIT_ERR;
 	u32RegValue = strgp.u32Mac_efuse_mib;
+#endif
 
 	u32RegValue &=0x0000ffff;
 	ret = nm_read_block(u32RegValue|0x30000, mac, 6);

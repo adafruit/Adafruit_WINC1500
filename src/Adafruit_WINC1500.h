@@ -98,6 +98,20 @@ public:
 	uint8_t begin(const String &ssid, uint8_t key_idx, const String &key) { return begin(ssid.c_str(), key_idx, key.c_str()); }
 	uint8_t begin(const String &ssid, const String &key) { return begin(ssid.c_str(), key.c_str()); }
 
+	/* Non-blocking versions of the above methods
+	 * refresh() or status() must be called periodically if these are used.
+	 *
+	 * param ssid: Pointer to the SSID string.
+	 * param key: Key input buffer.
+	 */
+	uint8_t beginAsync();
+	uint8_t beginAsync(const char *ssid);
+	uint8_t beginAsync(const char *ssid, uint8_t key_idx, const char* key);
+	uint8_t beginAsync(const char *ssid, const char *key);
+	uint8_t beginAsync(const String &ssid) { return beginAsync(ssid.c_str()); }
+	uint8_t beginAsync(const String &ssid, uint8_t key_idx, const String &key) { return beginAsync(ssid.c_str(), key_idx, key.c_str()); }
+	uint8_t beginAsync(const String &ssid, const String &key) { return beginAsync(ssid.c_str(), key.c_str()); }
+
 	/* Start Wifi in Access Point, with open security.
 	 * Only one client can connect to the AP at a time.
 	 *
@@ -106,6 +120,8 @@ public:
 	 */
 	uint8_t beginAP(char *ssid);
 	uint8_t beginAP(char *ssid, uint8_t channel);
+	uint8_t beginAP(const char *ssid, uint8_t key_idx, const char* key);
+	uint8_t beginAP(const char *ssid, uint8_t key_idx, const char* key, uint8_t channel);
 
 	uint8_t beginProvision(char *ssid, char *url);
 	uint8_t beginProvision(char *ssid, char *url, uint8_t channel);
@@ -147,6 +163,8 @@ private:
 	int _init;
 	char _version[9];
 	uint8_t startConnect(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo);
+	uint8_t startConnectAsync(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo);
+	uint8_t startAP(const char *ssid, uint8_t u8SecType, const void *pvAuthInfo, uint8_t channel);
 };
 
 extern Adafruit_WINC1500 WiFi;

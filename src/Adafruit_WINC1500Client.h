@@ -40,6 +40,10 @@ public:
 	virtual int connect(const char* host, uint16_t port);
 	virtual size_t write(uint8_t);
 	virtual size_t write(const uint8_t *buf, size_t size);
+	virtual int writeAsync(uint8_t);
+	virtual int writeAsync(const uint8_t *buf, size_t size);
+	virtual int writelnAsync(const uint8_t *buf, size_t size) { return writeAsync(buf, size) + writelnAsync(); }
+	virtual int writelnAsync() { return writeAsync((const uint8_t*)"\r\n", 2); }
 	virtual int available();
 	virtual int read();
 	virtual int read(uint8_t *buf, size_t size);
@@ -48,6 +52,7 @@ public:
 	virtual void stop();
 	virtual uint8_t connected();
 	virtual operator bool();
+	virtual Adafruit_WINC1500Client& operator =(const Adafruit_WINC1500Client& other);
 
 	using Print::write;
 
@@ -60,6 +65,7 @@ private:
 	uint8_t	_buffer[SOCKET_BUFFER_TCP_SIZE];
 	int connect(const char* host, uint16_t port, uint8_t opt);
 	int connect(IPAddress ip, uint16_t port, uint8_t opt, const uint8_t *hostname);
+	void copyFrom(const Adafruit_WINC1500Client& other);
 
 };
 

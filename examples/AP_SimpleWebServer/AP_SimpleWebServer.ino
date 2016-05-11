@@ -20,6 +20,7 @@
 
  created 25 Nov 2012
  by Tom Igoe
+ adapted to WiFi AP by Adafruit
  */
 #include <SPI.h>
 #include <Adafruit_WINC1500.h>
@@ -44,17 +45,14 @@ Adafruit_WINC1500 WiFi(WINC_CS, WINC_IRQ, WINC_RST);
 //Adafruit_WINC1500 WiFi;
 
 // **** WARNING ****
-// If running this example on an Uno or compatible you MUST change the LED_PIN
-// value below from 13 to something else that doesn't conflict with the SPI
-// pins.  Try pin 9 for example.
-// **** WARNING ****
 #define LED_PIN  13  // This example assumes you have a LED connected to pin 13
                      // (with a resistor to limit current!).  Connect LED anode
                      // (longer leg) to pin 9, then LED cathode (shorter pin)
                      // through a resistor (~300-1k ohm) to ground.
 
-char ssid[] = "feather";      //  created AP name
-char pass[] = "wing";         // (not supported yet)
+char ssid[] = "feather";         //  created AP name
+char pass[] = "0000000000";      // AP password (needed only for WEP, must be exactly 10 or 26 characters in length)
+int keyIndex = 0;                // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
 Adafruit_WINC1500Server server(80);
@@ -65,9 +63,11 @@ void setup() {
   digitalWrite(WINC_EN, HIGH);
 #endif
 
-  while (!Serial);
-  delay(1000);
-  Serial.begin(9600);      // initialize serial communication
+  //Initialize serial and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
 
   Serial.println("Access Point Web Server");
 
@@ -76,17 +76,29 @@ void setup() {
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
     Serial.println("WiFi shield not present");
-    while (true);       // don't continue
+    // don't continue
+    while (true);
   }
 
-  // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-  Serial.print("Creating Network named: ");
-  Serial.println(ssid);                   // print the network name (SSID);
-  status = WiFi.beginAP(ssid);
+  // print the network name (SSID);
+  Serial.print("Creating access point named: ");
+  Serial.println(ssid);
+
+  // Create open network. Change this line if you want to create an WEP network:
+  if (WiFi.beginAP(ssid) != WL_CONNECTED) {
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true);
+  }
+
   // wait 10 seconds for connection:
   delay(10000);
-  server.begin();                           // start the web server on port 80
-  printWifiStatus();                        // you're connected now, so print out the status
+
+  // start the web server on port 80
+  server.begin();
+
+  // you're connected now, so print out the status
+  printWifiStatus();
 }
 
 

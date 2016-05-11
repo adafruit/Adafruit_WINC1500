@@ -41,6 +41,7 @@ Adafruit_WINC1500UDP::Adafruit_WINC1500UDP()
 	_rcvSize = 0;
 	_rcvPort = 0;
 	_rcvIP = 0;
+	_sndSize = 0;
 }
 
 /* Start Adafruit_WINC1500UDP socket, listening at local port PORT */
@@ -55,6 +56,7 @@ uint8_t Adafruit_WINC1500UDP::begin(uint16_t port, uint32_t multicastAddr)
 	_rcvSize = 0;
 	_rcvPort = 0;
 	_rcvIP = 0;
+	_sndSize = 0;
 
 	// Initialize socket address structure.
 	addr.sin_family = AF_INET;
@@ -67,7 +69,7 @@ uint8_t Adafruit_WINC1500UDP::begin(uint16_t port, uint32_t multicastAddr)
 	}
 
 	// Add socket buffer handler:
-	socketBufferRegister(_socket, &_flag, &_head, &_tail, (uint8 *)_buffer);
+	socketBufferRegister(_socket, &_flag, &_head, &_tail, (uint8 *)_recvBuffer);
 	setsockopt(_socket, SOL_SOCKET, SO_SET_UDP_SEND_CALLBACK, &u32EnableCallbacks, 0);
 
 	// Set multicast address option if a multicast address was specified.
@@ -103,6 +105,19 @@ uint8_t Adafruit_WINC1500UDP::begin(uint16_t port, uint32_t multicastAddr)
 	return 1;
 }
 
+uint8_t Adafruit_WINC1500UDP::beginMulti(IPAddress ip, uint16_t port)
+{
+	uint32_t multiIp = ip;
+
+	if (!begin(port)) {
+		return 0;
+	}
+
+	setsockopt(_socket, SOL_SOCKET, IP_ADD_MEMBERSHIP, &multiIp, sizeof(multiIp));
+
+	return 1;
+}
+
 /* return number of bytes available in the current packet,
    will return zero if parsePacket hasn't been called yet */
 int Adafruit_WINC1500UDP::available()
@@ -132,6 +147,7 @@ int Adafruit_WINC1500UDP::beginPacket(const char *host, uint16_t port)
 	if (WiFi.hostByName(host, ip)) {
 		_sndIP = ip;
 		_sndPort = port;
+		_sndSize = 0;
 	}
 
 	return 0;
@@ -141,6 +157,7 @@ int Adafruit_WINC1500UDP::beginPacket(IPAddress ip, uint16_t port)
 {
 	_sndIP = ip;
 	_sndPort = port;
+	_sndSize = 0;
 
 	return 1;
 }
@@ -167,7 +184,7 @@ size_t Adafruit_WINC1500UDP::write(const uint8_t *buffer, size_t size)
 	addr.sin_port = _htons(_sndPort);
 	addr.sin_addr.s_addr = _sndIP;
 
-	if (sendto(_socket, (void *)buffer, size, 0,
+	if (sendto(_socket, (void *)_sndBuffer, _sndSize, 0,
 			(struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		// Network led OFF (rev A then rev B).
 		m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);
@@ -179,7 +196,7 @@ size_t Adafruit_WINC1500UDP::write(const uint8_t *buffer, size_t size)
 	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);
 	m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1);
 
-	return size;
+	return 1;
 }
 
 int Adafruit_WINC1500UDP::parsePacket()
@@ -191,10 +208,10 @@ int Adafruit_WINC1500UDP::parsePacket()
 			return _rcvSize;
 		}
 		if (_head != _tail) {
-			_rcvSize = ((uint16_t)_buffer[_tail] << 8) + (uint16_t)_buffer[_tail + 1];
-			_rcvPort = ((uint16_t)_buffer[_tail + 2] << 8) + (uint16_t)_buffer[_tail + 3];
-			_rcvIP =   ((uint32_t)_buffer[_tail + 4] << 24) + ((uint32_t)_buffer[_tail + 5] << 16) +
-					((uint32_t)_buffer[_tail + 6] << 8) + (uint32_t)_buffer[_tail + 7];
+			_rcvSize = ((uint16_t)_recvBuffer[_tail] << 8) + (uint16_t)_recvBuffer[_tail + 1];
+			_rcvPort = ((uint16_t)_recvBuffer[_tail + 2] << 8) + (uint16_t)_recvBuffer[_tail + 3];
+			_rcvIP =   ((uint32_t)_recvBuffer[_tail + 4] << 24) + ((uint32_t)_recvBuffer[_tail + 5] << 16) +
+					((uint32_t)_recvBuffer[_tail + 6] << 8) + (uint32_t)_recvBuffer[_tail + 7];
 			_tail += SOCKET_BUFFER_UDP_HEADER_SIZE;
 			return _rcvSize;
 		}
@@ -228,7 +245,7 @@ int Adafruit_WINC1500UDP::read(unsigned char* buf, size_t size)
 	}
 
 	for (uint32_t i = 0; i < size_tmp; ++i) {
-		buf[i] = _buffer[_tail++];
+		buf[i] = _recvBuffer[_tail++];
 		_rcvSize--;
 
 		if (_tail == _head) {
@@ -241,9 +258,9 @@ int Adafruit_WINC1500UDP::read(unsigned char* buf, size_t size)
 			// setup buffer and buffer size to transfer the remainder of the current packet
 			// or next received packet
 			if (hif_small_xfer) {
-				recvfrom(_socket, _buffer, SOCKET_BUFFER_MTU, 0);
+				recvfrom(_socket, _recvBuffer, SOCKET_BUFFER_MTU, 0);
 			} else {
-				recvfrom(_socket, _buffer + SOCKET_BUFFER_UDP_HEADER_SIZE, SOCKET_BUFFER_MTU, 0);
+				recvfrom(_socket, _recvBuffer + SOCKET_BUFFER_UDP_HEADER_SIZE, SOCKET_BUFFER_MTU, 0);
 			}
 			m2m_wifi_handle_events(NULL);
 		}
@@ -257,7 +274,7 @@ int Adafruit_WINC1500UDP::peek()
 	if (!available())
 		return -1;
 
-	return _buffer[_tail];
+	return _recvBuffer[_tail];
 }
 
 void Adafruit_WINC1500UDP::flush()
