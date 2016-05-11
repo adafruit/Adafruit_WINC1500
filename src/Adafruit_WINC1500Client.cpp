@@ -231,8 +231,8 @@ size_t Adafruit_WINC1500Client::writeAsync(const uint8_t *buf, size_t size)
 			setWriteError();
 			m2m_periph_gpio_set_val(M2M_PERIPH_GPIO16, 1);
 			m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1);
-			return 0;
 		}
+        return err;
 	}
 
 	m2m_wifi_handle_events(NULL);
