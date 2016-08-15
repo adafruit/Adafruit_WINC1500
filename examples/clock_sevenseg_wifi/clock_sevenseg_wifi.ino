@@ -90,7 +90,7 @@ Adafruit_WINC1500UDP Udp;
 time_t getNTPTime();
 unsigned long sendNTPpacket(IPAddress& address);
 void printWifiStatus();
-void printOledData();
+void printIP(IPAddress ip);
 
 void setup() {
 #ifdef WINC_EN
@@ -151,9 +151,9 @@ void setup() {
 
 void loop() {
   uint32_t loopStart = millis();
-  // Loop function runs over and over again to implement the clock logic.
 
   time_t timenow = now();
+  
   hours = hour(timenow);
   minutes = minute(timenow);
   seconds = second(timenow);
@@ -208,9 +208,10 @@ void loop() {
   // Now push out to the display the new values that were set above.
   clockDisplay.writeDisplay();
 
-  // Pause for a second for time to elapse.  This value is in milliseconds
+  // Pause for a while for time to elapse.  This value is in milliseconds
   // so 1000 milliseconds = 1 second.
-  delay(1000 - (millis() - loopStart));  //compensate for the time we spent in loop
+  uint32_t compensatedDelay = 1000 - (millis() - loopStart);
+  delay(compensatedDelay % 1000);  //compensate for the time we spent in loop
 }
 
 time_t getNTPTime()
@@ -220,6 +221,7 @@ time_t getNTPTime()
 
   //get a random server from the pool
   WiFi.hostByName(ntpServerName, timeServerIP);
+  printIP(timeServerIP); //Serial.println();
 
   sendNTPpacket(timeServerIP); // send an NTP packet to a time server
   // wait to see if a reply is available
@@ -309,5 +311,13 @@ void printWifiStatus() {
   Serial.print("signal strength (RSSI):");
   Serial.print(rssi);
   Serial.println(" dBm");
+}
+
+void printIP(IPAddress ip)
+{
+  Serial.print(ip & 0xFF); Serial.print(".");
+  Serial.print((ip>>8) & 0xFF); Serial.print(".");
+  Serial.print((ip>>16) & 0xFF); Serial.print(".");
+  Serial.print((ip>>24) & 0xFF);
 }
 
