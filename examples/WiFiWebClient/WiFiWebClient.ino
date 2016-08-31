@@ -51,7 +51,7 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(141,101,112,175);  // numeric IP for test page (no DNS)
-char server[] = "www.adafruit.com";    // domain name for test page (using DNS)
+char server[] = "wifitest.adafruit.com";    // domain name for test page (using DNS)
 #define webpage "/testwifi/index.html"  // path to test page
 
 
