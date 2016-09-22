@@ -1,6 +1,6 @@
-= =
+
 = This fork is deprecated! Please use WiFi101, which now has pin-setting support Thak you! :) =
-= =
+
 
 = Wifi library for the Arduino Wifi 101 Shield and MKR1000 board =
 
